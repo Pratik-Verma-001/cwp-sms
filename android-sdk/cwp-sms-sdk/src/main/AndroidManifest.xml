@@ -1,0 +1,32 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
+
+    <application>
+        <!-- The only configuration: set these two placeholders in your app's build.gradle -->
+        <meta-data android:name="com.cwp.sms.BASE_URL" android:value="${cwpBaseUrl}" />
+        <meta-data android:name="com.cwp.sms.API_KEY" android:value="${cwpApiKey}" />
+
+        <activity
+            android:name="com.cwp.sms.ConnectActivity"
+            android:exported="false"
+            android:label="CWP SMS"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+
+        <service
+            android:name="com.cwp.sms.ConnectorService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="user_started_sms_gateway" />
+        </service>
+
+        <receiver android:name="com.cwp.sms.SmsResultReceiver" android:exported="false" />
+    </application>
+</manifest>

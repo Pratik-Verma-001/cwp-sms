@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// Deny-by-default. All privileged data is read and written only by the server
+// through the Firebase Admin SDK, which bypasses these rules. The API enforces
+// authorization itself. Clients must never touch Firestore directly.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

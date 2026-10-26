@@ -1,0 +1,28 @@
+node_modules/
+dist/
+build/
+.vercel/
+.env
+.env.*
+!.env.example
+*.log
+coverage/
+
+# Firebase
+serviceAccount*.json
+*-firebase-adminsdk-*.json
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# Android
+apps/android/**/build/
+apps/android/.gradle/
+apps/android/local.properties
+*.jks
+*.keystore
+keystore.properties
+google-services.json
+android-sdk/.gradle/
+android-sdk/local.properties
+android-sdk/**/build/

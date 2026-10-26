@@ -1,0 +1,30 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+      - name: Build debug APK
+        working-directory: android-sdk
+        env:
+          CWP_BASE_URL: ${{ secrets.CWP_BASE_URL }}
+          CWP_CONNECTOR_KEY: ${{ secrets.CWP_CONNECTOR_KEY }}
+        run: |
+          test -n "$CWP_BASE_URL" && test -n "$CWP_CONNECTOR_KEY" || { echo "Add the CWP_BASE_URL and CWP_CONNECTOR_KEY repository secrets first."; exit 1; }
+          gradle :sample-app:assembleDebug --no-daemon "-PcwpBaseUrl=$CWP_BASE_URL" "-PcwpApiKey=$CWP_CONNECTOR_KEY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cwp-sample-debug-apk
+          path: android-sdk/sample-app/build/outputs/apk/debug/*.apk
+          retention-days: 7

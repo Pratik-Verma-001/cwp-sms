@@ -1,0 +1,49 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:label="CWP SMS" android:icon="@drawable/ic_logo_ember" android:roundIcon="@drawable/ic_logo_ember" android:allowBackup="false">
+        <!-- Lets the SDK's theme picker switch the launcher icon (one alias per theme below). -->
+        <meta-data android:name="com.cwp.sms.ICON_ALIAS_PREFIX" android:value="com.cwp.sample.icon." />
+        <activity android:name=".MainActivity" android:exported="false" />
+        <activity-alias android:name=".icon.Ember" android:targetActivity=".MainActivity" android:exported="true"
+            android:enabled="true" android:label="CWP SMS" android:icon="@drawable/ic_logo_ember" android:roundIcon="@drawable/ic_logo_ember">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".icon.Aurora" android:targetActivity=".MainActivity" android:exported="true"
+            android:enabled="false" android:label="CWP SMS" android:icon="@drawable/ic_logo_aurora" android:roundIcon="@drawable/ic_logo_aurora">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".icon.Solar" android:targetActivity=".MainActivity" android:exported="true"
+            android:enabled="false" android:label="CWP SMS" android:icon="@drawable/ic_logo_solar" android:roundIcon="@drawable/ic_logo_solar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".icon.Orchid" android:targetActivity=".MainActivity" android:exported="true"
+            android:enabled="false" android:label="CWP SMS" android:icon="@drawable/ic_logo_orchid" android:roundIcon="@drawable/ic_logo_orchid">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".icon.Ocean" android:targetActivity=".MainActivity" android:exported="true"
+            android:enabled="false" android:label="CWP SMS" android:icon="@drawable/ic_logo_ocean" android:roundIcon="@drawable/ic_logo_ocean">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".icon.Graphite" android:targetActivity=".MainActivity" android:exported="true"
+            android:enabled="false" android:label="CWP SMS" android:icon="@drawable/ic_logo_graphite" android:roundIcon="@drawable/ic_logo_graphite">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+    </application>
+</manifest>
