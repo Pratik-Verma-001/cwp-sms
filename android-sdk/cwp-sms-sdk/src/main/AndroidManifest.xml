@@ -18,6 +18,13 @@
             android:label="CWP SMS"
             android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
 
+        <activity
+            android:name="com.cwp.sms.RealTestActivity"
+            android:exported="false"
+            android:label="Real test"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+
         <service
             android:name="com.cwp.sms.ConnectorService"
             android:exported="false"

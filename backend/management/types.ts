@@ -87,6 +87,16 @@ export interface AuditEntry {
   detail?: string;
 }
 
+export interface OtpRecord {
+  phoneHash: string;
+  codeHash: string;
+  createdAt: Date;
+  expiresAt: Date;
+  attempts: number;
+  /** Send times within the last hour (for the hourly cap). */
+  sends: number[];
+}
+
 export type TransitionResult = { ok: true; job: JobRecord } | { ok: false };
 
 export interface ManagementStore {
@@ -114,6 +124,11 @@ export interface ManagementStore {
   deleteDevice(ownerUid: string, deviceId: string): Promise<"deleted" | "not_found" | "still_active">;
   getDevice(deviceId: string): Promise<DeviceRecord | null>;
   updateHeartbeat(deviceId: string, patch: HeartbeatPatch, now: Date): Promise<void>;
+
+  /** One pending OTP per device. */
+  getOtp(deviceId: string): Promise<OtpRecord | null>;
+  saveOtp(deviceId: string, otp: OtpRecord): Promise<void>;
+  deleteOtp(deviceId: string): Promise<void>;
 
   getUser(uid: string): Promise<UserRecord | null>;
   getApiKey(keyId: string): Promise<ApiKeyRecord | null>;

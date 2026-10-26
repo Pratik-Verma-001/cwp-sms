@@ -58,6 +58,13 @@ internal class Api(private val baseUrl: String) {
             JSONObject().put("to", to).put("message", message).put("mode", mode).put("idempotencyKey", idempotencyKey),
         )
 
+    /** Real test: asks the server to text a 6-digit code to [phone] through this phone's own SIM. */
+    fun otpSend(credential: String, phone: String): JSONObject =
+        call("POST", "/connector/otp/send", credential, JSONObject().put("phone", phone))
+
+    fun otpVerify(credential: String, phone: String, code: String): JSONObject =
+        call("POST", "/connector/otp/verify", credential, JSONObject().put("phone", phone).put("code", code))
+
     fun claim(credential: String): JSONObject? =
         call("POST", "/connector/jobs/claim", credential, JSONObject()).optJSONObject("job")
 

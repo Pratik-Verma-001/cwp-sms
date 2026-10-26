@@ -6,6 +6,7 @@ import { MemoryManagementStore } from "../../backend/management/memoryManagement
 import { adminAudit, adminOverview, adminRevokeDevice, adminRevokeKey, adminUpdateUser, adminUserDetail, adminUsers, setPlatform } from "../../backend/services/admin";
 import { claim, heartbeat, registerWithConnectorKey } from "../../backend/services/connector";
 import { dashboard } from "../../backend/services/dashboard";
+import { otpSend, otpVerify } from "../../backend/services/otp";
 import { connectorSend, dashboardSend } from "../../backend/services/dashboardSend";
 import type { ManagementDeps, RouteInput } from "../../backend/services/deps";
 import { createKey } from "../../backend/services/keys";
@@ -238,5 +239,47 @@ describe("send from the Android app (device credential)", () => {
     const dev = await pair();
     await adminUpdateUser(inp(ADMIN, { status: "suspended" }, { uid: "alice" }), w.deps);
     expect((await dsend(dev)).status).toBe(403);
+  });
+});
+
+describe("real-test OTP", () => {
+  beforeEach(fresh);
+  async function liveDev() {
+    const conn = (await createKey(inp(tok("alice"), { name: "p", environment: "live", scopes: ["connector"] }), w.deps)).body as { secret: string };
+    const dev = `Bearer ${((await registerWithConnectorKey(inp(`Bearer ${conn.secret}`, { nickname: "P", appVersion: "1", installId: "install-0001" }), w.deps)).body as { credential: string }).credential}`;
+    await setPlatform(inp(ADMIN, { liveSendingEnabled: true }), w.deps);
+    await adminUpdateUser(inp(ADMIN, { liveSendingEnabled: true }, { uid: "alice" }), w.deps);
+    await heartbeat(inp(dev, { connectorRunning: true, smsPermissionGranted: true, telephonyAvailable: true }), w.deps);
+    return dev;
+  }
+  const errCode = async (f: () => Promise<unknown>) => { try { await f(); return "none"; } catch (e) { return (e as { code?: string }).code; } };
+  const osend = (a: string, phone = "+919876543210") => otpSend(inp(a, { phone }), w.deps, sdeps(), "r");
+  const ocode = async (a: string) => {
+    const job = ((await claim(inp(a), w.deps)).body as any).job;
+    return /^(\d{6}) is your/.exec(job.message ?? job.body ?? JSON.stringify(job))![1]!;
+  };
+  it("sends, verifies once, rejects wrong/expired/replayed codes", async () => {
+    const dev = await liveDev();
+    expect((await osend(dev, "12345")).status).toBe(400);
+    expect((await osend(dev)).status).toBe(202);
+    expect(code(await osend(dev))).toBe("OTP_TOO_SOON");
+    const good = await ocode(dev);
+    const wrong = good === "000000" ? "111111" : "000000";
+    expect(code(await otpVerify(inp(dev, { phone: "+919876543210", code: wrong }), w.deps).catch((e) => ({ status: e.status, body: { error: { code: e.code } } })))).toBe("OTP_INVALID");
+    expect((await otpVerify(inp(dev, { phone: "+919876543210", code: good }), w.deps)).status).toBe(200);
+    expect(await errCode(() => otpVerify(inp(dev, { phone: "+919876543210", code: good }), w.deps))).toBe("OTP_NOT_FOUND");
+  });
+  it("expires and locks", async () => {
+    const dev = await liveDev();
+    await osend(dev);
+    for (let i = 0; i < 5; i++) await otpVerify(inp(dev, { phone: "+919876543210", code: "000000" }), w.deps).catch(() => {});
+    expect(await errCode(() => otpVerify(inp(dev, { phone: "+919876543210", code: "000000" }), w.deps))).toBe("OTP_LOCKED");
+    clock.setTime(clock.getTime() + 40_000);
+    await osend(dev);
+    clock.setTime(clock.getTime() + 301_000);
+    expect(await errCode(() => otpVerify(inp(dev, { phone: "+919876543210", code: "123456" }), w.deps))).toBe("OTP_EXPIRED");
+  });
+  it("refuses without a device credential", async () => {
+    expect((await osend("Bearer junk")).status).toBe(401);
   });
 });

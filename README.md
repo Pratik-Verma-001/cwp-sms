@@ -136,3 +136,9 @@ Local preview without Firebase: `npx tsx scripts/dev-server.ts` (port 4173; sign
 - Lease recovery runs only when a device polls (the PRD's request-triggered option); there is no scheduled sweeper, so an offline account's expired jobs stay `queued` until its device next polls or the status is read after TTL.
 - Google Play SMS permission policy must be reviewed before choosing a distribution route.
 - Production use needs a telecom, consent, and privacy review for your region.
+
+### Real test (Android app)
+
+`POST /api/v1/connector/otp/send` `{ "phone": "+91..." }` and `POST /api/v1/connector/otp/verify` `{ "phone", "code" }`, both with the device credential.
+The code is a real 6-digit SMS sent through the phone's own SIM via the normal job pipeline (live mode, quota and online checks apply).
+Only a keyed hash is stored; codes expire after 5 minutes, allow 5 wrong tries, 30 s between sends and 5 sends per hour.

@@ -197,6 +197,11 @@ class ConnectActivity : Activity() {
         toggle = button("Start connector")
         toggle.setOnClickListener { onToggle() }
         status.addView(toggle)
+        val realTest = button("Start Real Test").apply {
+            background = Ui.glass(this@ConnectActivity, 28, true)
+            setOnClickListener { startActivity(android.content.Intent(this@ConnectActivity, RealTestActivity::class.java)) }
+        }
+        status.addView(realTest)
         status.addView(label("While running, a notification with a Stop button stays visible. Carrier SMS charges apply.", 12f, Ui.faint).apply { setPadding(0, dp(12), 0, 0) })
         val statusPane = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; addView(status) }
         val sendPane = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }

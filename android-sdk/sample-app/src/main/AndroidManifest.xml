@@ -45,5 +45,33 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
+        <activity-alias android:name=".icon.Neon" android:targetActivity=".MainActivity" android:exported="true"
+            android:enabled="false" android:label="CWP SMS" android:icon="@drawable/ic_logo_neon" android:roundIcon="@drawable/ic_logo_neon">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".icon.Sunset" android:targetActivity=".MainActivity" android:exported="true"
+            android:enabled="false" android:label="CWP SMS" android:icon="@drawable/ic_logo_sunset" android:roundIcon="@drawable/ic_logo_sunset">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".icon.Crimson" android:targetActivity=".MainActivity" android:exported="true"
+            android:enabled="false" android:label="CWP SMS" android:icon="@drawable/ic_logo_crimson" android:roundIcon="@drawable/ic_logo_crimson">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".icon.Mocha" android:targetActivity=".MainActivity" android:exported="true"
+            android:enabled="false" android:label="CWP SMS" android:icon="@drawable/ic_logo_mocha" android:roundIcon="@drawable/ic_logo_mocha">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
     </application>
 </manifest>

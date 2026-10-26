@@ -4,6 +4,7 @@ import { header, newRequestId, readRawBody, sendResult } from "./http.js";
 import { matchRoute, resolveApiPath, type RouteId } from "./routes.js";
 import { getDeps, getManagementDeps } from "./runtime.js";
 import { adminAudit, adminDeleteDevice, adminDeleteKey, adminOverview, adminRevokeDevice, adminRevokeKey, adminUpdateUser, adminUserDetail, adminUsers, setPlatform } from "./services/admin.js";
+import { otpSend, otpVerify } from "./services/otp.js";
 import { connectorSend, dashboardSend } from "./services/dashboardSend.js";
 import { dashboard, deleteRequest, getRequest, listRequests, publicConfig } from "./services/dashboard.js";
 import { claim, fetchJob, heartbeat, registerWithConnectorKey, submitResult } from "./services/connector.js";
@@ -26,6 +27,7 @@ const MANAGEMENT: Partial<Record<RouteId, Service>> = {
   "devices.revoke": revokeDevice,
   "devices.delete": deleteDevice,
   "connector.register": registerWithConnectorKey,
+  "connector.otp.verify": otpVerify,
   config: publicConfig,
   "admin.overview": adminOverview,
   "admin.platform": setPlatform,
@@ -97,6 +99,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const mdeps = getManagementDeps();
       const rawBody = await readRawBody(req, mdeps.config.maxRequestBodyBytes);
       sendResult(res, await connectorSend({ rawBody, params: {}, ...auth }, mdeps, getDeps(), requestId), requestId);
+      return;
+    }
+
+    if (m.id === "connector.otp.send") {
+      const mdeps = getManagementDeps();
+      const rawBody = await readRawBody(req, mdeps.config.maxRequestBodyBytes);
+      sendResult(res, await otpSend({ rawBody, params: {}, ...auth }, mdeps, getDeps(), requestId), requestId);
       return;
     }
 

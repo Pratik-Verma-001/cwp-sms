@@ -485,6 +485,10 @@ a:focus-visible, button:focus-visible, .chip:focus-visible { outline: 2px solid 
 :root[data-theme="orchid"] { --bg0: #0d0720; --bg1: #1d0f3d; --bg2: #2d0f3a; --c1: #a78bfa; --c2: #f472b6; --c1-rgb: 167,139,250; --c2-rgb: 244,114,182; --soft: #d8c8ff; --d0-rgb: 10,5,22; --d1-rgb: 22,12,46; --d2-rgb: 38,20,70; --d3-rgb: 54,28,92; }
 :root[data-theme="ocean"] { --bg0: #040b1c; --bg1: #0b1b3f; --bg2: #06283a; --c1: #38bdf8; --c2: #6366f1; --c1-rgb: 56,189,248; --c2-rgb: 99,102,241; --soft: #bae6fd; --d0-rgb: 3,8,22; --d1-rgb: 8,18,46; --d2-rgb: 14,32,76; --d3-rgb: 20,44,100; }
 :root[data-theme="graphite"] { --bg0: #060607; --bg1: #131316; --bg2: #0c0c10; --c1: #8b8b96; --c2: #52525b; --c1-rgb: 139,139,150; --c2-rgb: 82,82,91; --soft: #e4e4e7; --d0-rgb: 4,4,5; --d1-rgb: 12,12,14; --d2-rgb: 24,24,28; --d3-rgb: 36,36,42; }
+:root[data-theme="neon"] { --bg0: #040a05; --bg1: #0a1c0c; --bg2: #04202a; --c1: #84cc16; --c2: #0891b2; --c1-rgb: 132,204,22; --c2-rgb: 8,145,178; --soft: #d9f99d; --d0-rgb: 3,8,4; --d1-rgb: 8,24,12; --d2-rgb: 12,40,24; --d3-rgb: 14,58,40; }
+:root[data-theme="sunset"] { --bg0: #11051a; --bg1: #2a0b33; --bg2: #3a0f22; --c1: #fb923c; --c2: #d4258f; --c1-rgb: 251,146,60; --c2-rgb: 212,37,143; --soft: #fed7aa; --d0-rgb: 12,4,18; --d1-rgb: 30,10,38; --d2-rgb: 50,16,58; --d3-rgb: 70,22,78; }
+:root[data-theme="crimson"] { --bg0: #12030a; --bg1: #2a0814; --bg2: #1c0510; --c1: #fb5f7d; --c2: #9f1239; --c1-rgb: 251,95,125; --c2-rgb: 159,18,57; --soft: #fecdd3; --d0-rgb: 12,2,6; --d1-rgb: 30,6,14; --d2-rgb: 50,10,22; --d3-rgb: 72,14,32; }
+:root[data-theme="mocha"] { --bg0: #0f0a06; --bg1: #231710; --bg2: #1a110b; --c1: #d49a66; --c2: #7c4a2d; --c1-rgb: 212,154,102; --c2-rgb: 124,74,45; --soft: #f1d9bf; --d0-rgb: 10,6,3; --d1-rgb: 26,17,11; --d2-rgb: 42,28,18; --d3-rgb: 58,40,26; }
 .brand-mark { background: none !important; box-shadow: none !important; }
 .brand-mark svg { width: 34px; height: 34px; filter: drop-shadow(0 4px 12px rgba(var(--c2-rgb), .45)); fill: initial; }
 .brand-mark { width: 34px; height: 34px; }
@@ -505,3 +509,22 @@ a:focus-visible, button:focus-visible, .chip:focus-visible { outline: 2px solid 
 .theme-wipe { position: fixed; inset: 0; z-index: 90; pointer-events: none; background: radial-gradient(circle at var(--x) var(--y), rgba(var(--c1-rgb), .55), rgba(var(--c2-rgb), .25) 35%, transparent 62%); animation: wipe .7s ease-out both; }
 @keyframes wipe { from { opacity: 1; clip-path: circle(0% at var(--x) var(--y)); } 60% { opacity: .9; } to { opacity: 0; clip-path: circle(150% at var(--x) var(--y)); } }
 body, .card, .stat, .top, .nav, .btn { transition: background-color .4s, border-color .4s; }
+
+/* ===== v5 perf: cheap compositing everywhere, desktop included =====
+   Measured main-thread work for 30 rapid tab clicks is tiny; what costs frames is repainting blurred layers,
+   so the full-width top bar no longer blurs, nothing animates layout or filters, and the lens moves by transform only. */
+.top, .toast { -webkit-backdrop-filter: none; backdrop-filter: none; }
+.top { background: linear-gradient(180deg, rgba(var(--d1-rgb), .92), rgba(var(--d0-rgb), .86)); }
+.toast { background: rgba(var(--d1-rgb), .94); }
+.nav { -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.lens { will-change: transform; }
+.lens > i { will-change: transform; }
+@media (min-width: 860px) {
+  .lens { transition: transform .3s cubic-bezier(.3,1.2,.5,1), opacity .12s; }
+  .lens > i { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .nav a svg, .nav a[aria-current="page"] svg, .nav a.hot svg { filter: none; transition: transform .25s cubic-bezier(.3,1.4,.5,1), stroke .15s, fill .15s; }
+  .nav a { transition: color .15s; }
+  .nav.sheen::before { animation-duration: .8s; }
+}
+/* clicks respond at once: no hover transforms on large cards while the pointer is moving to the bar */
+@media (hover: hover) { .card:hover, .stat:hover, .rcard:hover, .ucard:hover { transition-duration: .15s; } }

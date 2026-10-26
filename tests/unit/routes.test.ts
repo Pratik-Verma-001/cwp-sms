@@ -23,6 +23,8 @@ describe("route table", () => {
       ["GET", "/api/v1/sms/requests/smsreq_5", "requests.get", { id: "smsreq_5" }],
       ["POST", "/api/v1/dashboard/send", "dashboard.send", {}],
       ["POST", "/api/v1/connector/send", "connector.send", {}],
+      ["POST", "/api/v1/connector/otp/send", "connector.otp.send", {}],
+      ["POST", "/api/v1/connector/otp/verify", "connector.otp.verify", {}],
       ["GET", "/api/v1/admin/overview", "admin.overview", {}],
       ["POST", "/api/v1/admin/platform", "admin.platform", {}],
       ["GET", "/api/v1/admin/users", "admin.users", {}],

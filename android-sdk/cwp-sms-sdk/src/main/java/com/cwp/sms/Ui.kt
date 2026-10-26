@@ -7,17 +7,21 @@ import android.view.View
 import android.widget.FrameLayout
 
 /** Small, dependency-free helpers for the glass look. */
-internal data class Theme(val id: String, val name: String, val note: String, val c1: Int, val c2: Int, val bgTop: Int, val bgMid: Int, val bgBottom: Int)
+internal data class Theme(val id: String, val name: String, val note: String, val c1: Int, val c2: Int, val bgTop: Int, val bgMid: Int, val bgBottom: Int, val c3: Int = 0)
 
 internal object Ui {
     private fun hex(v: String) = Color.parseColor(v)
     val themes = listOf(
-        Theme("ember", "Ember", "Coral and magenta", hex("#FF9A62"), hex("#FF2D87"), hex("#0C050F"), hex("#1E0A22"), hex("#2B0E18")),
+        Theme("ember", "Ember", "Coral, pink and violet", hex("#FFB067"), hex("#FF2D87"), hex("#0C050F"), hex("#1E0A22"), hex("#2B0E18"), hex("#9B4DFF")),
         Theme("aurora", "Aurora", "Teal and emerald", hex("#14B8A6"), hex("#22C55E"), hex("#03100D"), hex("#062A22"), hex("#0A2A1C")),
         Theme("solar", "Solar", "Amber and flame", hex("#F59E0B"), hex("#EA580C"), hex("#120A02"), hex("#2A1604"), hex("#2E0F06")),
         Theme("orchid", "Orchid", "Violet and rose", hex("#A78BFA"), hex("#F472B6"), hex("#0D0720"), hex("#1D0F3D"), hex("#2D0F3A")),
         Theme("ocean", "Ocean", "Sky and indigo", hex("#38BDF8"), hex("#6366F1"), hex("#040B1C"), hex("#0B1B3F"), hex("#06283A")),
         Theme("graphite", "Graphite", "Steel and slate", hex("#8B8B96"), hex("#52525B"), hex("#060607"), hex("#131316"), hex("#0C0C10")),
+        Theme("neon", "Neon", "Lime and cyan", hex("#84CC16"), hex("#0891B2"), hex("#040A05"), hex("#0A1C0C"), hex("#04202A")),
+        Theme("sunset", "Sunset", "Orange, magenta, violet", hex("#FB923C"), hex("#D4258F"), hex("#11051A"), hex("#2A0B33"), hex("#3A0F22"), hex("#7C3AED")),
+        Theme("crimson", "Crimson", "Rose and wine", hex("#FB5F7D"), hex("#9F1239"), hex("#12030A"), hex("#2A0814"), hex("#1C0510")),
+        Theme("mocha", "Mocha", "Latte and espresso", hex("#D49A66"), hex("#7C4A2D"), hex("#0F0A06"), hex("#231710"), hex("#1A110B")),
     )
     var theme: Theme = themes[0]
         private set
