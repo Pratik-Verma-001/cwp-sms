@@ -25,6 +25,7 @@ describe("route table", () => {
       ["POST", "/api/v1/connector/send", "connector.send", {}],
       ["POST", "/api/v1/connector/otp/send", "connector.otp.send", {}],
       ["POST", "/api/v1/connector/otp/verify", "connector.otp.verify", {}],
+      ["GET", "/api/v1/connector/otp/status", "connector.otp.status", {}],
       ["GET", "/api/v1/admin/overview", "admin.overview", {}],
       ["POST", "/api/v1/admin/platform", "admin.platform", {}],
       ["GET", "/api/v1/admin/users", "admin.users", {}],

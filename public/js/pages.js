@@ -329,8 +329,10 @@ function secretPanel(k) {
 /* ------------------------------ Devices ------------------------------ */
 export function devices(root) {
   mount(root, () => api("GET", "/devices"), ({ devices: ds }) => {
+    const myGen = root._gen; // only refresh while this page is still the one on screen
+    const again = () => { if (root._gen === myGen) devices(root); };
     const act = ds.filter((d) => d.status === "active"), old = ds.filter((d) => d.status !== "active");
-    return [head("Devices", "Phones that send your SMS through their SIM.", h("button", { class: "btn", type: "button", onclick: () => devices(root), text: "Refresh" })),
+    return [head("Devices", "Phones that send your SMS through their SIM.", h("button", { class: "btn", type: "button", onclick: () => again(), text: "Refresh" })),
       h("div", { class: "stack" },
         h("div", { class: "card" },
           act.length === 0 ? h("div", { class: "empty" }, "No phone connected. ", h("a", { class: "btn small primary", href: "#/sdk", text: "Set up the Android SDK" }))
@@ -340,7 +342,7 @@ export function devices(root) {
                   h("button", { class: "btn small danger", type: "button", text: "Remove", onclick: async (ev) => {
                     if (!(await ask({ title: `Remove “${d.nickname}”?`, body: "It stops receiving messages straight away.", confirm: "Remove", danger: true }))) return;
                     ev.target.disabled = true;
-                    try { await api("POST", `/devices/${d.deviceId}/revoke`); toast("Device removed"); devices(root); }
+                    try { await api("POST", `/devices/${d.deviceId}/revoke`); toast("Device removed"); again(); }
                     catch (e) { toast(e.message, true); ev.target.disabled = false; }
                   } })),
                 h("span", { class: "meta", text: `App ${d.appVersion} · SMS permission ${d.smsPermissionGranted ? "granted" : "missing"} · SIM ${d.telephonyAvailable ? (d.simDisplayLabel || "ready") : "unavailable"} · connector ${d.connectorRunning ? "running" : "stopped"} · seen ${ago(d.lastSeenAt)}` }))))),
@@ -349,14 +351,14 @@ export function devices(root) {
             old.length > 1 ? h("button", { class: "btn small danger", type: "button", text: `Delete ${old.length} removed`, onclick: async () => {
               if (!(await ask({ title: `Delete ${old.length} removed phones?`, body: "They are already switched off. This clears them from your list for good.", confirm: "Delete all", danger: true }))) return;
               try { for (const d of old) await api("POST", `/devices/${d.deviceId}/delete`); toast("Removed phones deleted"); } catch (e) { toast(e.message, true); }
-              devices(root);
+              again();
             } }) : null),
           h("ul", { class: "list" }, old.map((d) => h("li", { class: "item" }, h("span", { class: "t", text: d.nickname }),
             h("span", { class: "end" }, h("span", { class: "pill off", text: "removed" }),
               h("button", { class: "btn small danger", type: "button", text: "Delete", onclick: async (ev) => {
                 if (!(await ask({ title: `Delete “${d.nickname}”?`, body: "It is already removed. Deleting clears it from your list for good.", confirm: "Delete", danger: true }))) return;
                 ev.target.disabled = true;
-                try { await api("POST", `/devices/${d.deviceId}/delete`); toast("Phone deleted"); devices(root); }
+                try { await api("POST", `/devices/${d.deviceId}/delete`); toast("Phone deleted"); again(); }
                 catch (e) { toast(e.message, true); ev.target.disabled = false; }
               } })))))) : null)];
   });

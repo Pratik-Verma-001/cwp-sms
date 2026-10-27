@@ -4,7 +4,7 @@ import { header, newRequestId, readRawBody, sendResult } from "./http.js";
 import { matchRoute, resolveApiPath, type RouteId } from "./routes.js";
 import { getDeps, getManagementDeps } from "./runtime.js";
 import { adminAudit, adminDeleteDevice, adminDeleteKey, adminOverview, adminRevokeDevice, adminRevokeKey, adminUpdateUser, adminUserDetail, adminUsers, setPlatform } from "./services/admin.js";
-import { otpSend, otpVerify } from "./services/otp.js";
+import { otpSend, otpStatus, otpVerify } from "./services/otp.js";
 import { connectorSend, dashboardSend } from "./services/dashboardSend.js";
 import { dashboard, deleteRequest, getRequest, listRequests, publicConfig } from "./services/dashboard.js";
 import { claim, fetchJob, heartbeat, registerWithConnectorKey, submitResult } from "./services/connector.js";
@@ -28,6 +28,7 @@ const MANAGEMENT: Partial<Record<RouteId, Service>> = {
   "devices.delete": deleteDevice,
   "connector.register": registerWithConnectorKey,
   "connector.otp.verify": otpVerify,
+  "connector.otp.status": otpStatus,
   config: publicConfig,
   "admin.overview": adminOverview,
   "admin.platform": setPlatform,

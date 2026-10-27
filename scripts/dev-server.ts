@@ -1,5 +1,5 @@
 // Local preview: serves public/ and the real API handlers on an in-memory store with a fake sign-in.
-import { otpSend, otpVerify } from "../backend/services/otp.js";
+import { otpSend, otpStatus, otpVerify } from "../backend/services/otp.js";
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join } from "node:path";
@@ -25,7 +25,7 @@ const store = new MemoryManagementStore();
 store.platformSettings.liveSendingEnabled = true; // preview only
 const verifier = { async verify(t: string) { if (!t.startsWith("tok:")) throw new Error("x"); const uid = t.slice(4); return { uid, email: `${uid}@example.com`, emailVerified: true }; } };
 const deps = { store, verifier, config };
-const svc: Record<string, any> = { "keys.create": createKey, "keys.list": listKeys, "keys.revoke": revokeKey, "devices.list": listDevices, "devices.revoke": revokeDevice, dashboard, "requests.list": listRequests, "requests.get": getRequest, config: publicConfig, "connector.register": registerWithConnectorKey, "connector.heartbeat": heartbeat, "connector.claim": claim, "admin.overview": adminOverview, "admin.platform": setPlatform, "admin.users": adminUsers, "admin.user": adminUserDetail, "admin.user.update": adminUpdateUser, "admin.key.revoke": adminRevokeKey, "admin.device.revoke": adminRevokeDevice, "admin.audit": adminAudit, "keys.delete": deleteKey, "devices.delete": deleteDevice, "requests.delete": deleteRequest, "admin.key.delete": adminDeleteKey, "admin.device.delete": adminDeleteDevice, "connector.otp.verify": otpVerify };
+const svc: Record<string, any> = { "keys.create": createKey, "keys.list": listKeys, "keys.revoke": revokeKey, "devices.list": listDevices, "devices.revoke": revokeDevice, dashboard, "requests.list": listRequests, "requests.get": getRequest, config: publicConfig, "connector.register": registerWithConnectorKey, "connector.heartbeat": heartbeat, "connector.claim": claim, "admin.overview": adminOverview, "admin.platform": setPlatform, "admin.users": adminUsers, "admin.user": adminUserDetail, "admin.user.update": adminUpdateUser, "admin.key.revoke": adminRevokeKey, "admin.device.revoke": adminRevokeDevice, "admin.audit": adminAudit, "keys.delete": deleteKey, "devices.delete": deleteDevice, "requests.delete": deleteRequest, "admin.key.delete": adminDeleteKey, "admin.device.delete": adminDeleteDevice, "connector.otp.verify": otpVerify, "connector.otp.status": otpStatus };
 const types: Record<string, string> = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".zip": "application/zip" };
 
 createServer(async (req, res) => {

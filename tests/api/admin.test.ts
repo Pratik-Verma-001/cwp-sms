@@ -4,9 +4,9 @@ import { loadConfig } from "../../backend/config";
 import { toErrorResult, type HttpResult } from "../../backend/errors";
 import { MemoryManagementStore } from "../../backend/management/memoryManagementStore";
 import { adminAudit, adminOverview, adminRevokeDevice, adminRevokeKey, adminUpdateUser, adminUserDetail, adminUsers, setPlatform } from "../../backend/services/admin";
-import { claim, heartbeat, registerWithConnectorKey } from "../../backend/services/connector";
+import { claim, heartbeat, registerWithConnectorKey, submitResult } from "../../backend/services/connector";
 import { dashboard } from "../../backend/services/dashboard";
-import { otpSend, otpVerify } from "../../backend/services/otp";
+import { otpSend, otpStatus, otpVerify } from "../../backend/services/otp";
 import { connectorSend, dashboardSend } from "../../backend/services/dashboardSend";
 import type { ManagementDeps, RouteInput } from "../../backend/services/deps";
 import { createKey } from "../../backend/services/keys";
@@ -278,6 +278,20 @@ describe("real-test OTP", () => {
     await osend(dev);
     clock.setTime(clock.getTime() + 301_000);
     expect(await errCode(() => otpVerify(inp(dev, { phone: "+919876543210", code: "123456" }), w.deps))).toBe("OTP_EXPIRED");
+  });
+  it("a code whose SMS failed on the phone can never be verified", async () => {
+    const dev = await liveDev();
+    expect((await osend(dev)).status).toBe(202);
+    expect(((await otpStatus(inp(dev), w.deps)).body as any).state).toBe("sending");
+    const c = (await claim(inp(dev), w.deps)).body as any;
+    const msg = JSON.stringify(c.job);
+    const good = /(\d{6}) is your/.exec(msg)![1]!;
+    await submitResult(inp(dev, { claimVersion: c.job.claimVersion, event: "sending" }, { id: c.job.id }), w.deps);
+    await submitResult(inp(dev, { claimVersion: c.job.claimVersion, event: "send_result", sendCallback: "failure", telephonyErrorCode: 16 }, { id: c.job.id }), w.deps);
+    const st = (await otpStatus(inp(dev), w.deps)).body as any;
+    expect(st.state).toBe("failed");
+    expect(st.errorCode).toBe("TELEPHONY_16");
+    expect(await errCode(() => otpVerify(inp(dev, { phone: "+919876543210", code: good }), w.deps))).toBe("OTP_SEND_FAILED");
   });
   it("refuses without a device credential", async () => {
     expect((await osend("Bearer junk")).status).toBe(401);

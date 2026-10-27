@@ -528,3 +528,28 @@ body, .card, .stat, .top, .nav, .btn { transition: background-color .4s, border-
 }
 /* clicks respond at once: no hover transforms on large cards while the pointer is moving to the bar */
 @media (hover: hover) { .card:hover, .stat:hover, .rcard:hover, .ucard:hover { transition-duration: .15s; } }
+
+/* ===== v6 desktop: vertical liquid rail. Same glass as the mobile dock; only the selected tab expands to show its name ===== */
+@media (min-width: 860px) {
+  .nav, body.admin .nav { display: flex; flex-direction: column; gap: 6px; width: 68px; padding: 8px; margin: 18px 0 0 18px; border-radius: 34px; overflow: visible; contain: layout style; height: max-content; }
+  .nav::before { border-radius: 34px; clip-path: inset(0 round 34px); width: 100%; height: 40%; }
+  .nav a, body.admin .nav a { position: relative; width: 52px; height: 52px; padding: 0; display: grid; place-items: center; border-radius: 26px; overflow: visible; gap: 0; background: none; }
+  .nav a:hover { background: rgba(255,255,255,.08); }
+  .nav a svg { width: 22px; height: 22px; stroke-width: 1.9; transition: transform .3s cubic-bezier(.3,1.5,.5,1), stroke .15s; }
+  .nav a.hot svg, .nav a[aria-current="page"] svg { stroke: #fff; fill: rgba(255,255,255,.16); transform: scale(1.08); filter: none; }
+  .nav a span { position: absolute; left: 58px; top: 50%; transform: translate(-6px, -50%); opacity: 0; font-size: .95rem; font-weight: 700; color: #fff; white-space: nowrap; pointer-events: auto; transition: opacity .18s, transform .3s cubic-bezier(.3,1.4,.5,1); text-shadow: 0 1px 8px rgba(0,0,0,.35); }
+  .nav a.hot span { opacity: 1; transform: translate(0, -50%); transition-delay: .06s; }
+  .nav.sliding a span { opacity: 0 !important; transition-delay: 0s; }
+  /* the lens: a transparent liquid pill. It shrinks to a bubble while it travels, then opens with the label */
+  .lens { transition: transform .34s cubic-bezier(.3,1.25,.5,1), width .34s cubic-bezier(.3,1.3,.5,1), opacity .12s; contain: layout; }
+  .lens > i { border-radius: 26px; transition: transform .3s cubic-bezier(.3,1.5,.5,1);
+    background: radial-gradient(ellipse at 40% 55%, rgba(var(--d0-rgb),.34), rgba(var(--d0-rgb),.12) 60%, rgba(255,255,255,.05) 85%), radial-gradient(ellipse at 22% 16%, rgba(255,255,255,.5), rgba(255,255,255,0) 45%), linear-gradient(160deg, rgba(var(--c1-rgb),.36), rgba(var(--c2-rgb),.44));
+    border: 1px solid rgba(255,255,255,.55);
+    box-shadow: inset 0 2px 2px rgba(255,255,255,.85), inset 0 -6px 12px rgba(var(--c2-rgb),.35), inset 0 0 16px rgba(255,255,255,.14), 0 12px 22px -8px rgba(0,0,0,.55), 0 4px 12px rgba(var(--c2-rgb),.35);
+    -webkit-backdrop-filter: blur(8px) saturate(160%); backdrop-filter: blur(8px) saturate(160%); }
+  .lens > i::after { left: 14%; right: 14%; top: 6%; height: 28%; opacity: .8; }
+  .lens.moving > i { transform: scale(1.06, .92); }
+  .nav.pressing .lens > i { transform: scale(1.04, 1.1); }
+  .nav.sheen::before { animation: none; opacity: 0; }
+  .nav .docs-link { display: grid; }
+}

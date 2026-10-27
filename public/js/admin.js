@@ -82,8 +82,11 @@ const LIMITS = [["dailyUnits", "SMS units per day"], ["requestsPerMinute", "Requ
 function userDetail(root, uid) {
   mount(root, () => api("GET", `/admin/users/${encodeURIComponent(uid)}`), (d) => {
     const u = d.user;
+    // A refresh after a change only happens if the admin is still on this page (never overwrite another tab).
+    const myGen = root._gen;
+    const refresh = () => { if (root._gen === myGen) userDetail(root, uid); };
     const patch = async (body, ok = "Saved") => {
-      try { await api("POST", `/admin/users/${encodeURIComponent(uid)}`, body); toast(ok); userDetail(root, uid); }
+      try { await api("POST", `/admin/users/${encodeURIComponent(uid)}`, body); toast(ok); refresh(); }
       catch (e) { toast(e.message, true); }
     };
     const inputs = LIMITS.map(([k, label]) => {
@@ -122,10 +125,10 @@ function userDetail(root, uid) {
             h("span", { class: "end" }, h("span", { class: "pill " + (k.status === "active" ? "ok" : "off"), text: k.status }),
               k.status === "active" ? h("button", { class: "btn small danger", type: "button", text: "Revoke", onclick: async () => {
                 if (!(await ask({ title: `Revoke "${k.name}"?`, body: "Anything using it stops immediately.", confirm: "Revoke", danger: true }))) return;
-                try { await api("POST", `/admin/users/${encodeURIComponent(uid)}/keys/${k.keyId}/revoke`); toast("Key revoked"); userDetail(root, uid); } catch (e) { toast(e.message, true); } } }
+                try { await api("POST", `/admin/users/${encodeURIComponent(uid)}/keys/${k.keyId}/revoke`); toast("Key revoked"); refresh(); } catch (e) { toast(e.message, true); } } }
               ) : h("button", { class: "btn small danger", type: "button", text: "Delete", onclick: async () => {
                 if (!(await ask({ title: `Delete "${k.name}"?`, body: "Already revoked. This removes it for good.", confirm: "Delete", danger: true }))) return;
-                try { await api("POST", `/admin/users/${encodeURIComponent(uid)}/keys/${k.keyId}/delete`); toast("Key deleted"); userDetail(root, uid); } catch (e) { toast(e.message, true); } } })),
+                try { await api("POST", `/admin/users/${encodeURIComponent(uid)}/keys/${k.keyId}/delete`); toast("Key deleted"); refresh(); } catch (e) { toast(e.message, true); } } })),
             h("span", { class: "meta mono", text: `${k.prefix}… · ${k.environment} · created ${ago(k.createdAt)} · last used ${ago(k.lastUsedAt)}` }))))),
         h("div", { class: "card" }, h("h2", { text: "Phones" }),
           d.devices.length === 0 ? h("p", { class: "muted", text: "None." }) : h("ul", { class: "list" }, d.devices.map((x) => h("li", { class: "item" },
@@ -133,10 +136,10 @@ function userDetail(root, uid) {
             h("span", { class: "end" }, h("span", { class: "pill " + (x.status !== "active" ? "off" : x.online ? "ok" : "warn"), text: x.status !== "active" ? "removed" : x.online ? "Online" : "Offline" }),
               x.status === "active" ? h("button", { class: "btn small danger", type: "button", text: "Remove", onclick: async () => {
                 if (!(await ask({ title: `Remove phone "${x.nickname}"?`, body: "It stops receiving messages immediately.", confirm: "Remove", danger: true }))) return;
-                try { await api("POST", `/admin/users/${encodeURIComponent(uid)}/devices/${x.deviceId}/revoke`); toast("Phone removed"); userDetail(root, uid); } catch (e) { toast(e.message, true); } } }
+                try { await api("POST", `/admin/users/${encodeURIComponent(uid)}/devices/${x.deviceId}/revoke`); toast("Phone removed"); refresh(); } catch (e) { toast(e.message, true); } } }
               ) : h("button", { class: "btn small danger", type: "button", text: "Delete", onclick: async () => {
                 if (!(await ask({ title: `Delete phone "${x.nickname}"?`, body: "Already removed. This clears it for good.", confirm: "Delete", danger: true }))) return;
-                try { await api("POST", `/admin/users/${encodeURIComponent(uid)}/devices/${x.deviceId}/delete`); toast("Phone deleted"); userDetail(root, uid); } catch (e) { toast(e.message, true); } } })),
+                try { await api("POST", `/admin/users/${encodeURIComponent(uid)}/devices/${x.deviceId}/delete`); toast("Phone deleted"); refresh(); } catch (e) { toast(e.message, true); } } })),
             h("span", { class: "meta", text: `App ${x.appVersion} · SMS permission ${x.smsPermissionGranted ? "yes" : "no"} · SIM ${x.telephonyAvailable ? "ready" : "unavailable"} · seen ${ago(x.lastSeenAt)}` }))))),
         h("div", { class: "card" }, h("h2", { text: "Recent requests" }),
           d.recent.length === 0 ? h("p", { class: "muted", text: "None." }) : h("ul", { class: "list" }, d.recent.map((r) => h("li", { class: "item" },

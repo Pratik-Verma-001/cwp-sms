@@ -277,7 +277,8 @@ export function liquidNav(nav) {
   const LIFT = 15, D = 54;
   const links = () => [...nav.querySelectorAll("a")];
   const current = () => nav.querySelector('a[aria-current="page"]');
-  let last = "", moveTimer = 0;
+  let last = "", moveTimer = 0, openTimer = 0, lastY = null;
+  const EXPANDED = 176;
   const place = (a, instant = false) => {
     if (!a || !a.offsetWidth) return;
     const round = getComputedStyle(nav).flexDirection !== "column";
@@ -289,9 +290,21 @@ export function liquidNav(nav) {
       const cs = getComputedStyle(a);
       const iconMid = ic ? parseFloat(cs.paddingTop) + parseFloat(getComputedStyle(ic).height) / 2 : a.offsetHeight / 2;
       y = a.offsetTop + iconMid - D / 2 - LIFT;
-    } else { x = a.offsetLeft; y = a.offsetTop; w = a.offsetWidth; hgt = a.offsetHeight; }
+    } else { x = a.offsetLeft; y = a.offsetTop; w = EXPANDED; hgt = a.offsetHeight; }
     for (const l of links()) l.classList.toggle("hot", l === a);
     const key = `${x}|${y}|${w}|${hgt}`;
+    if (!round) {
+      // vertical rail: collapse to a bubble while travelling, then open to show the name
+      const travelling = !instant && lastY !== null && y !== lastY;
+      clearTimeout(openTimer);
+      if (travelling) {
+        nav.classList.add("sliding");
+        lens.style.width = hgt + "px";
+        openTimer = setTimeout(() => { nav.classList.remove("sliding"); lens.style.width = EXPANDED + "px"; }, 190);
+      } else { nav.classList.remove("sliding"); }
+      lastY = y;
+      if (travelling) w = hgt;
+    }
     if (instant) lens.style.transition = "none";
     lens.style.width = w + "px"; lens.style.height = hgt + "px";
     lens.style.transform = `translate3d(${x}px, ${y}px, 0)`;
@@ -306,9 +319,10 @@ export function liquidNav(nav) {
     let down = null, start = null, hover = null;
     const under = (x, y) => {
       const list = links(); const r0 = nav.getBoundingClientRect();
-      if (x < r0.left - 20 || x > r0.right + 20 || y < r0.top - 40 || y > r0.bottom + 30) return null;
+      const col = getComputedStyle(nav).flexDirection === "column";
+      if (x < r0.left - 20 || x > r0.right + (col ? EXPANDED : 20) || y < r0.top - (col ? 20 : 40) || y > r0.bottom + (col ? 20 : 30)) return null;
       let best = null, bd = 1e9;
-      for (const a of list) { const r = a.getBoundingClientRect(); const d = Math.abs(x - (r.left + r.width / 2)) + (r.top > r0.top + r0.height / 2 ? Math.abs(y - (r.top + r.height / 2)) * 0.4 : 0); if (d < bd) { bd = d; best = a; } }
+      for (const a of list) { const r = a.getBoundingClientRect(); const d = col ? Math.abs(y - (r.top + r.height / 2)) : Math.abs(x - (r.left + r.width / 2)) + (r.top > r0.top + r0.height / 2 ? Math.abs(y - (r.top + r.height / 2)) * 0.4 : 0); if (d < bd) { bd = d; best = a; } }
       return best;
     };
     nav.addEventListener("pointerdown", (e) => {

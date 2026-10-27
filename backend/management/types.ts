@@ -93,6 +93,8 @@ export interface OtpRecord {
   createdAt: Date;
   expiresAt: Date;
   attempts: number;
+  /** The SMS job that carries this code; a code whose SMS failed can never be verified. */
+  jobId?: string;
   /** Send times within the last hour (for the hourly cap). */
   sends: number[];
 }

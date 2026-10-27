@@ -47,7 +47,7 @@ class RealTestActivity : Activity() {
         showPhone()
     }
 
-    override fun onDestroy() { tick?.let { ui.removeCallbacks(it) }; super.onDestroy() }
+    override fun onDestroy() { watchGen++; tick?.let { ui.removeCallbacks(it) }; super.onDestroy() }
 
     // ---------- shared bits ----------
     private fun label(text: String, sp: Float, color: Int = Ui.text, bold: Boolean = false) = TextView(this).apply {
@@ -159,13 +159,15 @@ class RealTestActivity : Activity() {
 
     // ---------- step 2: OTP ----------
     private fun showOtp(notice: String = "") {
-        lateinit var field: EditText; lateinit var err: TextView; lateinit var btn: TextView; lateinit var resend: TextView
+        lateinit var field: EditText; lateinit var err: TextView; lateinit var btn: TextView; lateinit var resend: TextView; lateinit var smsLine: TextView
         page("Enter the code", "We texted a 6-digit code to $phone.") {
             field = input("••••••").apply {
                 inputType = InputType.TYPE_CLASS_NUMBER; gravity = Gravity.CENTER; setTextSize(TypedValue.COMPLEX_UNIT_SP, 30f)
                 letterSpacing = 0.4f; filters = arrayOf(android.text.InputFilter.LengthFilter(6))
             }
             addView(field)
+            smsLine = label("Sending the SMS through your SIM…", 13f, Ui.muted).apply { setPadding(0, dp(12), 0, 0); gravity = Gravity.CENTER }
+            addView(smsLine)
             err = label(notice, 13f, Ui.bad).apply { setPadding(0, dp(10), 0, 0); gravity = Gravity.CENTER; visibility = if (notice.isEmpty()) View.GONE else View.VISIBLE }
             addView(err)
             btn = primary("Verify") {}
@@ -216,6 +218,46 @@ class RealTestActivity : Activity() {
         }
         tick = t; ui.post(t)
         field.requestFocus()
+        watchSms(smsLine, btn)
+    }
+
+    /** Polls the server for what really happened to the SMS and shows it, so a failed send is never hidden. */
+    private fun watchSms(line: TextView, verifyBtn: TextView) {
+        val gen = ++watchGen
+        Thread {
+            var tries = 0
+            while (gen == watchGen && tries < 40) {
+                tries++
+                val r = try { Api(CwpSms.config(this).baseUrl).otpStatus(Session.credential(this)) } catch (e: Exception) { null }
+                val state = r?.optString("state") ?: "none"
+                val code = r?.optString("errorCode").orEmpty()
+                if (gen != watchGen) return@Thread
+                runOnUiThread {
+                    if (gen != watchGen) return@runOnUiThread
+                    when (state) {
+                        "sent" -> { line.text = "SMS sent \u2713 It should arrive in a few seconds."; line.setTextColor(Ui.ok) }
+                        "failed" -> {
+                            line.text = failText(code); line.setTextColor(Ui.bad)
+                            verifyBtn.isEnabled = false; verifyBtn.alpha = 0.5f
+                        }
+                        else -> { line.text = "Sending the SMS through your SIM\u2026"; line.setTextColor(Ui.muted) }
+                    }
+                }
+                if (state == "sent" || state == "failed") return@Thread
+                try { Thread.sleep(2000) } catch (_: InterruptedException) { return@Thread }
+            }
+        }.start()
+    }
+
+    private var watchGen = 0
+
+    private fun failText(code: String): String = when (code) {
+        "TELEPHONY_16" -> "The phone's modem refused to send this SMS (error 16). This usually happens when you text the same SIM's own number or the carrier blocks it. Try another number, then tap Resend."
+        "TELEPHONY_4", "TELEPHONY_9" -> "No mobile signal or SIM service, so the SMS could not be sent. Check your network, then tap Resend."
+        "TELEPHONY_5" -> "The phone is sending too many SMS. Wait a few minutes, then tap Resend."
+        "TELEPHONY_7", "TELEPHONY_8" -> "The carrier blocked this destination. Try another number."
+        "DELIVERY_FAILED" -> "The carrier says the SMS was not delivered. Try another number, then tap Resend."
+        else -> "The SMS could not be sent, so no code reached you. Check the connector, then tap Resend."
     }
 
     // ---------- step 3: calculator ----------

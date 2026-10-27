@@ -200,10 +200,10 @@ export class FirestoreManagementStore implements ManagementStore {
     const snap = await this.db.collection("deviceOtps").doc(deviceId).get();
     if (!snap.exists) return null;
     const d = snap.data()!;
-    return { phoneHash: d.phoneHash, codeHash: d.codeHash, createdAt: d.createdAt.toDate(), expiresAt: d.expiresAt.toDate(), attempts: d.attempts, sends: d.sends ?? [] };
+    return { phoneHash: d.phoneHash, codeHash: d.codeHash, createdAt: d.createdAt.toDate(), expiresAt: d.expiresAt.toDate(), attempts: d.attempts, sends: d.sends ?? [], ...(d.jobId ? { jobId: d.jobId } : {}) };
   }
   async saveOtp(deviceId: string, o: OtpRecord): Promise<void> {
-    await this.db.collection("deviceOtps").doc(deviceId).set({ phoneHash: o.phoneHash, codeHash: o.codeHash, createdAt: ts(o.createdAt), expiresAt: ts(o.expiresAt), attempts: o.attempts, sends: o.sends });
+    await this.db.collection("deviceOtps").doc(deviceId).set({ phoneHash: o.phoneHash, codeHash: o.codeHash, createdAt: ts(o.createdAt), expiresAt: ts(o.expiresAt), attempts: o.attempts, sends: o.sends, ...(o.jobId ? { jobId: o.jobId } : {}) });
   }
   async deleteOtp(deviceId: string): Promise<void> {
     await this.db.collection("deviceOtps").doc(deviceId).delete();

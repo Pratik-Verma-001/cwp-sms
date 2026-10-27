@@ -49,7 +49,9 @@ export async function otpSend(input: RouteInput, mdeps: ManagementDeps, sdeps: D
       { ...sdeps, now: mdeps.now ?? sdeps.now },
     );
     if (res.status >= 400) return res; // not stored: nothing was sent
+    const jobId = (res.body as { id?: string } | undefined)?.id;
     await mdeps.store.saveOtp(device.deviceId, {
+      ...(jobId ? { jobId } : {}),
       phoneHash: h(pepper, "otp-phone", phone),
       codeHash: h(pepper, `otp-code:${phone}`, code),
       createdAt: now,
@@ -57,8 +59,7 @@ export async function otpSend(input: RouteInput, mdeps: ManagementDeps, sdeps: D
       attempts: 0,
       sends: [...sends, now.getTime()],
     });
-    const body = res.body as { id?: string; requestId?: string; status?: string };
-    return { status: 202, body: { sent: true, requestId: body.id ?? body.requestId ?? null, expiresInSeconds: OTP_TTL_S, resendAfterSeconds: RESEND_AFTER_S } };
+    return { status: 202, body: { sent: true, requestId: jobId ?? null, expiresInSeconds: OTP_TTL_S, resendAfterSeconds: RESEND_AFTER_S } };
   } catch (err) {
     return toErrorResult(err, requestId);
   }
@@ -76,6 +77,12 @@ export async function otpVerify(input: RouteInput, deps: ManagementDeps): Promis
     await deps.store.deleteOtp(device.deviceId);
     throw new ApiError(400, "OTP_EXPIRED", "This code has expired. Request a new one.");
   }
+  // The code only counts if its SMS really left the phone (a copy in the Sent folder proves nothing).
+  const failure = await sendFailure(deps, otp.jobId);
+  if (failure) {
+    await deps.store.deleteOtp(device.deviceId);
+    throw new ApiError(409, "OTP_SEND_FAILED", failure);
+  }
   if (otp.attempts >= MAX_ATTEMPTS) {
     await deps.store.deleteOtp(device.deviceId);
     throw new ApiError(429, "OTP_LOCKED", "Too many wrong tries. Request a new code.");
@@ -88,4 +95,27 @@ export async function otpVerify(input: RouteInput, deps: ManagementDeps): Promis
   }
   await deps.store.deleteOtp(device.deviceId); // single use
   return { status: 200, body: { verified: true } };
+}
+
+const FAILED = new Set(["failed", "expired", "cancelled"]);
+
+async function sendFailure(deps: ManagementDeps, jobId: string | undefined): Promise<string | null> {
+  if (!jobId) return null;
+  const job = await deps.store.getJob(jobId);
+  if (!job || !FAILED.has(job.status)) return null;
+  return job.status === "expired"
+    ? "The SMS was not sent in time (the connector was not running). Start the connector and request a new code."
+    : "The SMS could not be sent, so this code is not valid. Request a new code.";
+}
+
+/** Lets the app show what really happened to the SMS: sending, sent, or failed (with the phone's error code). */
+export async function otpStatus(input: RouteInput, deps: ManagementDeps): Promise<HttpResult> {
+  const now = nowOf(deps);
+  const { device } = await authenticateDevice(input.authorization, deps.store, deps.config, now);
+  const otp = await deps.store.getOtp(device.deviceId);
+  if (!otp?.jobId) return { status: 200, body: { state: "none" } };
+  const job = await deps.store.getJob(otp.jobId);
+  if (!job || job.ownerUid !== device.ownerUid) return { status: 200, body: { state: "none" } };
+  const state = FAILED.has(job.status) ? "failed" : ["sent", "delivery_pending", "delivered"].includes(job.status) ? "sent" : "sending";
+  return { status: 200, body: { state, status: job.status, errorCode: job.errorCode ?? null } };
 }

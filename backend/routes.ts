@@ -3,7 +3,7 @@ export type RouteId =
   | "keys.create" | "keys.list" | "keys.revoke" | "keys.delete"
   | "devices.list" | "devices.challenge" | "devices.register" | "devices.revoke" | "devices.delete"
   | "connector.heartbeat" | "connector.claim" | "connector.fetch" | "connector.result"
-  | "connector.register" | "connector.otp.send" | "connector.otp.verify"
+  | "connector.register" | "connector.otp.send" | "connector.otp.verify" | "connector.otp.status"
   | "config" | "dashboard" | "requests.list" | "requests.get" | "requests.delete"
   | "dashboard.send" | "connector.send"
   | "admin.overview" | "admin.platform" | "admin.users" | "admin.user" | "admin.user.update"
@@ -31,6 +31,7 @@ export const ROUTES: readonly { method: Method; path: string; id: RouteId }[] = 
   { method: "POST", path: "/connector/register", id: "connector.register" },
   { method: "POST", path: "/connector/otp/send", id: "connector.otp.send" },
   { method: "POST", path: "/connector/otp/verify", id: "connector.otp.verify" },
+  { method: "GET", path: "/connector/otp/status", id: "connector.otp.status" },
   { method: "GET", path: "/config", id: "config" },
   { method: "GET", path: "/dashboard", id: "dashboard" },
   { method: "GET", path: "/sms/requests", id: "requests.list" },

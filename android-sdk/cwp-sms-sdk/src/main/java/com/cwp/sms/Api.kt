@@ -65,6 +65,9 @@ internal class Api(private val baseUrl: String) {
     fun otpVerify(credential: String, phone: String, code: String): JSONObject =
         call("POST", "/connector/otp/verify", credential, JSONObject().put("phone", phone).put("code", code))
 
+    /** What happened to the code's SMS: state is sending, sent, failed or none. */
+    fun otpStatus(credential: String): JSONObject = call("GET", "/connector/otp/status", credential, null)
+
     fun claim(credential: String): JSONObject? =
         call("POST", "/connector/jobs/claim", credential, JSONObject()).optJSONObject("job")
 
