@@ -6,7 +6,7 @@ import { MemoryManagementStore } from "../../backend/management/memoryManagement
 import { adminAudit, adminOverview, adminRevokeDevice, adminRevokeKey, adminUpdateUser, adminUserDetail, adminUsers, setPlatform } from "../../backend/services/admin";
 import { claim, heartbeat, registerWithConnectorKey, submitResult } from "../../backend/services/connector";
 import { dashboard } from "../../backend/services/dashboard";
-import { otpSend, otpStatus, otpVerify } from "../../backend/services/otp";
+import { apiOtpSend, apiOtpStatus, apiOtpVerify, otpSend, otpStatus, otpVerify } from "../../backend/services/otp";
 import { connectorSend, dashboardSend } from "../../backend/services/dashboardSend";
 import type { ManagementDeps, RouteInput } from "../../backend/services/deps";
 import { createKey } from "../../backend/services/keys";
@@ -295,5 +295,69 @@ describe("real-test OTP", () => {
   });
   it("refuses without a device credential", async () => {
     expect((await osend("Bearer junk")).status).toBe(401);
+  });
+});
+
+describe("public OTP API (API key)", () => {
+  beforeEach(fresh);
+  const mk = async (environment: "test" | "live") =>
+    `Bearer ${((await createKey(inp(tok("alice"), { name: "o", environment, scopes: ["sms:send"] }), w.deps)).body as { secret: string }).secret}`;
+  const errCode = async (f: () => Promise<unknown>) => { try { await f(); return "none"; } catch (e) { return (e as { code?: string }).code; } };
+  const send = (k: string, over: Record<string, unknown> = {}) => apiOtpSend(inp(k, { phone: "+919876543210", brand: "Acme", ...over }), w.deps, sdeps(), "r");
+  const ver = (k: string, otpId: string, code: string) => apiOtpVerify(inp(k, { otpId, code }), w.deps);
+
+  it("a test key sends nothing, returns the code, and verifies once", async () => {
+    const k = await mk("test");
+    const r = await send(k);
+    expect(r.status).toBe(202);
+    const b = r.body as any;
+    expect(b.demo).toBe(true);
+    expect(b.debugCode).toMatch(/^\d{6}$/);
+    expect(code(await send(k))).toBe("OTP_TOO_SOON");
+    expect(await errCode(() => ver(k, b.otpId, b.debugCode === "000000" ? "111111" : "000000"))).toBe("OTP_INVALID");
+    expect((await ver(k, b.otpId, b.debugCode)).status).toBe(200);
+    expect(await errCode(() => ver(k, b.otpId, b.debugCode))).toBe("OTP_NOT_FOUND");
+  });
+  it("a live key never reveals the code and the code rides a real SMS job", async () => {
+    await setPlatform(inp(ADMIN, { liveSendingEnabled: true }), w.deps);
+    await adminUpdateUser(inp(ADMIN, { liveSendingEnabled: true }, { uid: "alice" }), w.deps);
+    const conn = (await createKey(inp(tok("alice"), { name: "p", environment: "live", scopes: ["connector"] }), w.deps)).body as { secret: string };
+    const dev = `Bearer ${((await registerWithConnectorKey(inp(`Bearer ${conn.secret}`, { nickname: "P", appVersion: "1", installId: "install-0001" }), w.deps)).body as { credential: string }).credential}`;
+    await heartbeat(inp(dev, { connectorRunning: true, smsPermissionGranted: true, telephonyAvailable: true }), w.deps);
+    const k = await mk("live");
+    const r = await send(k, { length: 4, ttlSeconds: 120 });
+    expect(r.status).toBe(202);
+    const b = r.body as any;
+    expect(b.debugCode === undefined).toBe(true);
+    const job = ((await claim(inp(dev), w.deps)).body as any).job;
+    const sent = /(\d{4}) is your Acme code/.exec(JSON.stringify(job))![1]!;
+    expect(((await apiOtpStatus(inp(k, "", { otpId: b.otpId }), w.deps)).body as any).state).toBe("sending");
+    // SMS fails on the phone: the code can no longer be verified
+    await submitResult(inp(dev, { claimVersion: job.claimVersion, event: "sending" }, { id: job.id }), w.deps);
+    await submitResult(inp(dev, { claimVersion: job.claimVersion, event: "send_result", sendCallback: "failure", telephonyErrorCode: 16 }, { id: job.id }), w.deps);
+    expect(((await apiOtpStatus(inp(k, "", { otpId: b.otpId }), w.deps)).body as any).state).toBe("failed");
+    expect(await errCode(() => ver(k, b.otpId, sent))).toBe("OTP_SEND_FAILED");
+  });
+  it("locks after 5 wrong tries, expires, and is private to its owner", async () => {
+    const k = await mk("test");
+    const b = (await send(k)).body as any;
+    for (let i = 0; i < 5; i++) await ver(k, b.otpId, "000000").catch(() => {});
+    expect(await errCode(() => ver(k, b.otpId, b.debugCode))).toBe("OTP_LOCKED");
+    clock.setTime(clock.getTime() + 40_000);
+    const c = (await send(k)).body as any;
+    clock.setTime(clock.getTime() + 301_000);
+    expect(await errCode(() => ver(k, c.otpId, c.debugCode))).toBe("OTP_EXPIRED");
+    clock.setTime(clock.getTime() + 40_000);
+    const d = (await send(k)).body as any;
+    const other = `Bearer ${((await createKey(inp(tok("bob"), { name: "o", environment: "test", scopes: ["sms:send"] }), w.deps)).body as { secret: string }).secret}`;
+    expect(await errCode(() => ver(other, d.otpId, d.debugCode))).toBe("OTP_NOT_FOUND");
+  });
+  it("validates input and rejects bad or wrong-scope keys", async () => {
+    const k = await mk("test");
+    expect(code(await send(k, { phone: "12345" }))).toBe("VALIDATION_ERROR");
+    expect(code(await send(k, { length: 3 }))).toBe("VALIDATION_ERROR");
+    expect(code(await send("Bearer junk"))).toBe("INVALID_API_KEY");
+    const conn = `Bearer ${((await createKey(inp(tok("alice"), { name: "c", environment: "live", scopes: ["connector"] }), w.deps)).body as { secret: string }).secret}`;
+    expect((await send(conn)).status >= 401).toBe(true);
   });
 });

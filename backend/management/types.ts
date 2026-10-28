@@ -99,6 +99,19 @@ export interface OtpRecord {
   sends: number[];
 }
 
+/** A code issued through the public OTP API (one per request, looked up by otpId). */
+export interface ApiOtpRecord {
+  otpId: string;
+  ownerUid: string;
+  keyId: string;
+  phoneHash: string;
+  codeHash: string;
+  jobId?: string;
+  createdAt: Date;
+  expiresAt: Date;
+  attempts: number;
+}
+
 export type TransitionResult = { ok: true; job: JobRecord } | { ok: false };
 
 export interface ManagementStore {
@@ -131,6 +144,13 @@ export interface ManagementStore {
   getOtp(deviceId: string): Promise<OtpRecord | null>;
   saveOtp(deviceId: string, otp: OtpRecord): Promise<void>;
   deleteOtp(deviceId: string): Promise<void>;
+
+  saveApiOtp(otp: ApiOtpRecord): Promise<void>;
+  getApiOtp(otpId: string): Promise<ApiOtpRecord | null>;
+  deleteApiOtp(otpId: string): Promise<void>;
+  /** Send times (ms) for one phone number under one account, for cooldown and hourly caps. */
+  getPhoneSends(ownerUid: string, phoneHash: string): Promise<number[]>;
+  setPhoneSends(ownerUid: string, phoneHash: string, sends: number[]): Promise<void>;
 
   getUser(uid: string): Promise<UserRecord | null>;
   getApiKey(keyId: string): Promise<ApiKeyRecord | null>;

@@ -12,6 +12,7 @@ import type {
   TransitionResult,
   UserPatch,
   OtpRecord,
+  ApiOtpRecord,
 } from "./types.js";
 
 /** In-memory implementation of both store interfaces, for tests. Methods are synchronous inside, so atomic. */
@@ -107,6 +108,13 @@ export class MemoryManagementStore extends MemoryStore implements ManagementStor
     return "deleted" as const;
   }
 
+  apiOtps = new Map<string, ApiOtpRecord>();
+  phoneSends = new Map<string, number[]>();
+  async saveApiOtp(o: ApiOtpRecord) { this.apiOtps.set(o.otpId, o); }
+  async getApiOtp(id: string) { return this.apiOtps.get(id) ?? null; }
+  async deleteApiOtp(id: string) { this.apiOtps.delete(id); }
+  async getPhoneSends(uid: string, h: string) { return this.phoneSends.get(`${uid}:${h}`) ?? []; }
+  async setPhoneSends(uid: string, h: string, v: number[]) { this.phoneSends.set(`${uid}:${h}`, v); }
   otps = new Map<string, OtpRecord>();
   async getOtp(deviceId: string) { return this.otps.get(deviceId) ?? null; }
   async saveOtp(deviceId: string, otp: OtpRecord) { this.otps.set(deviceId, otp); }

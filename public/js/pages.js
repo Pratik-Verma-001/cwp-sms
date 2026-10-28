@@ -369,7 +369,13 @@ export function docs(root) {
   const b = BASE();
   const send = `curl -X POST ${b}/api/v1/sms/send \\\n  -H "Authorization: Bearer $CWP_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -H "Idempotency-Key: order-1001" \\\n  -d '{"to":"+919876543210","message":"Your code is 482913","mode":"live"}'`;
   const status = `curl ${b}/api/v1/sms/status/<id> \\\n  -H "Authorization: Bearer $CWP_API_KEY"`;
-  clear(root).append(head("API docs", "Send SMS from your own server."), h("div", { class: "stack" },
+  const otpSend = `curl -X POST ${b}/api/v1/otp/send \\\n  -H "Authorization: Bearer $CWP_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"phone":"+919876543210","brand":"Acme"}'\n\n# 202 -> {"otpId":"otp_...","expiresAt":"...","resendAfterSeconds":30}`;
+  const otpVerify = `curl -X POST ${b}/api/v1/otp/verify \\\n  -H "Authorization: Bearer $CWP_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"otpId":"otp_...","code":"123456"}'\n\n# 200 -> {"verified":true}`;
+  clear(root).append(head("API docs", "Send SMS and OTP codes from your own server."), h("div", { class: "stack" },
+    h("div", { class: "card" }, h("h2", { text: "Send an OTP" }), codeBlock(otpSend),
+      h("p", { class: "small muted", text: "Your phone texts the code to your user, so you pay no per-SMS OTP provider fee. Optional: length (4-8), ttlSeconds (60-600). A test key sends nothing and returns the code as debugCode so you can build safely; a live key never returns it." })),
+    h("div", { class: "card" }, h("h2", { text: "Verify the code" }), codeBlock(otpVerify),
+      h("p", { class: "small muted", text: "Single use, expires (5 min by default), locks after 5 wrong tries. If the SMS failed on the phone the code cannot be verified (409 OTP_SEND_FAILED). GET /api/v1/otp/<otpId> shows sending, sent or failed." })),
     h("div", { class: "card" }, h("h2", { text: "Send" }), codeBlock(send),
       h("p", { class: "small muted", text: "202 means recorded — not sent, not delivered. Use a unique Idempotency-Key per message so retries never double-send. Use mode “demo” (or a test key) to try without a phone." })),
     h("div", { class: "card" }, h("h2", { text: "Check status" }), codeBlock(status),

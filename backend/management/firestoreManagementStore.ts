@@ -21,6 +21,7 @@ import type {
   TransitionResult,
   UserPatch,
   OtpRecord,
+  ApiOtpRecord,
 } from "./types.js";
 
 const ts = (d: Date) => Timestamp.fromDate(d);
@@ -194,6 +195,24 @@ export class FirestoreManagementStore implements ManagementStore {
       tx.delete(ref);
       return "deleted" as const;
     });
+  }
+
+  async saveApiOtp(o: ApiOtpRecord): Promise<void> {
+    await this.db.collection("apiOtps").doc(o.otpId).set({ ownerUid: o.ownerUid, keyId: o.keyId, phoneHash: o.phoneHash, codeHash: o.codeHash, createdAt: ts(o.createdAt), expiresAt: ts(o.expiresAt), attempts: o.attempts, ...(o.jobId ? { jobId: o.jobId } : {}) });
+  }
+  async getApiOtp(otpId: string): Promise<ApiOtpRecord | null> {
+    const snap = await this.db.collection("apiOtps").doc(otpId).get();
+    if (!snap.exists) return null;
+    const d = snap.data()!;
+    return { otpId, ownerUid: d.ownerUid, keyId: d.keyId, phoneHash: d.phoneHash, codeHash: d.codeHash, createdAt: d.createdAt.toDate(), expiresAt: d.expiresAt.toDate(), attempts: d.attempts, ...(d.jobId ? { jobId: d.jobId } : {}) };
+  }
+  async deleteApiOtp(otpId: string): Promise<void> { await this.db.collection("apiOtps").doc(otpId).delete(); }
+  async getPhoneSends(ownerUid: string, phoneHash: string): Promise<number[]> {
+    const snap = await this.db.collection("otpPhones").doc(`${ownerUid}_${phoneHash}`).get();
+    return snap.exists ? ((snap.data()!.sends as number[]) ?? []) : [];
+  }
+  async setPhoneSends(ownerUid: string, phoneHash: string, sends: number[]): Promise<void> {
+    await this.db.collection("otpPhones").doc(`${ownerUid}_${phoneHash}`).set({ sends, updatedAt: ts(new Date()) });
   }
 
   async getOtp(deviceId: string): Promise<OtpRecord | null> {

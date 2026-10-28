@@ -17,7 +17,7 @@ const INVALID = () => new ApiError(401, "INVALID_API_KEY", "The API key is missi
  */
 export async function authenticateApiKey(
   authorization: string | undefined,
-  store: SendStore,
+  store: Pick<SendStore, "getApiKey" | "getUser">,
   config: Config,
   now: Date,
   requiredScopes: readonly string[],

@@ -123,7 +123,7 @@ class RealTestActivity : Activity() {
     private fun showPhone(prefill: String = "", notice: String = "") {
         lateinit var field: EditText; lateinit var err: TextView; lateinit var btn: TextView
         page("Real test", "Verify your number, then open the calculator.") {
-            addView(label("Phone number", 13f, Ui.muted))
+            addView(label("Phone number to verify", 13f, Ui.muted))
             field = input("+91 98765 43210").apply { inputType = InputType.TYPE_CLASS_PHONE; setText(prefill) }
             addView(field)
             err = label(notice, 13f, Ui.bad).apply { setPadding(0, dp(10), 0, 0); visibility = if (notice.isEmpty()) View.GONE else View.VISIBLE }
@@ -137,7 +137,7 @@ class RealTestActivity : Activity() {
                 requestOtp(n, onFail = { m -> busy(btn, false, "Send OTP"); err.text = m; err.visibility = View.VISIBLE })
             }
             addView(btn)
-            addView(label("A real SMS with a 6-digit code is sent through your SIM. Carrier charges may apply.", 12f, Ui.faint).apply { setPadding(0, dp(14), 0, 0) })
+            addView(label("This phone sends the code by SMS through its own SIM, so enter ANOTHER phone's number (a friend's, or the number of your second SIM). A SIM cannot text its own number: the phone shows \"sending... failed\" and the code never arrives. Carrier charges may apply.", 12f, Ui.warn).apply { setPadding(0, dp(14), 0, 0) })
             addView(link("Back to connector") { finish() })
         }
     }
@@ -252,7 +252,7 @@ class RealTestActivity : Activity() {
     private var watchGen = 0
 
     private fun failText(code: String): String = when (code) {
-        "TELEPHONY_16" -> "The phone's modem refused to send this SMS (error 16). This usually happens when you text the same SIM's own number or the carrier blocks it. Try another number, then tap Resend."
+        "TELEPHONY_16" -> "The phone's modem refused to send this SMS (error 16). A SIM cannot text its own number, so this happens when the number is this phone's SIM (or the carrier blocks it). Tap \"Use a different number\" and enter another phone's number."
         "TELEPHONY_4", "TELEPHONY_9" -> "No mobile signal or SIM service, so the SMS could not be sent. Check your network, then tap Resend."
         "TELEPHONY_5" -> "The phone is sending too many SMS. Wait a few minutes, then tap Resend."
         "TELEPHONY_7", "TELEPHONY_8" -> "The carrier blocked this destination. Try another number."

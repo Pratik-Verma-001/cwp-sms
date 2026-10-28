@@ -44,6 +44,7 @@ SIM-based SMS gateway: a REST API creates SMS jobs, and (in a later phase) a use
 | `POST /api/v1/connector/send` | Device credential | The Android app's Send box: creates a demo/live request for the phone's owner (same rules as the dashboard) |
 | `POST /api/v1/connector/register` | Connector key | The Android app exchanges base URL + key for a device credential (shown once) |
 | `POST /api/v1/sms/send`, `GET /api/v1/sms/status/:id` | SMS API key | Submit, poll |
+| `POST /api/v1/otp/send`, `POST /api/v1/otp/verify`, `GET /api/v1/otp/:otpId` | SMS API key | Send / verify an OTP for your end users (Twilio-Verify style) |
 | `POST /api/v1/connector/heartbeat` | Device credential | Report running state, permission, SIM |
 | `POST /api/v1/connector/jobs/claim` | Device credential | Lease the oldest queued live job |
 | `GET /api/v1/connector/jobs/:id` | Device credential | Re-read a job this device holds |
@@ -142,3 +143,9 @@ Local preview without Firebase: `npx tsx scripts/dev-server.ts` (port 4173; sign
 `POST /api/v1/connector/otp/send` `{ "phone": "+91..." }` and `POST /api/v1/connector/otp/verify` `{ "phone", "code" }`, both with the device credential.
 The code is a real 6-digit SMS sent through the phone's own SIM via the normal job pipeline (live mode, quota and online checks apply).
 Only a keyed hash is stored; codes expire after 5 minutes, allow 5 wrong tries, 30 s between sends and 5 sends per hour.
+
+### OTP API (for your end users)
+
+`POST /otp/send {phone, brand?, length?, ttlSeconds?}` returns `{otpId, expiresAt}`; the gateway phone texts the code. `POST /otp/verify {otpId, code}` returns `{verified:true}`.
+Codes are stored as keyed hashes, expire (default 5 min), are single use, lock after 5 wrong tries, allow one send per number per 30 s and 5 per hour.
+If the SMS fails on the phone the code cannot be verified. A test key sends nothing and returns `debugCode`; a live key never does.
