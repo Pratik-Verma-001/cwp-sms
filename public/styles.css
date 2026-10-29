@@ -553,3 +553,32 @@ body, .card, .stat, .top, .nav, .btn { transition: background-color .4s, border-
   .nav.sheen::before { animation: none; opacity: 0; }
   .nav .docs-link { display: grid; }
 }
+
+/* ===== v7 desktop rail: compact circles; press opens the capsule with the name, release evaporates it ===== */
+@media (min-width: 860px) {
+  .nav a span { clip-path: inset(0 100% 0 0); opacity: 0; transform: translate(-4px, -50%); transition: none; will-change: clip-path, opacity; }
+  .nav.open a.hot span { clip-path: inset(0 0 0 0); opacity: 1; transform: translate(0, -50%); transition: clip-path .26s cubic-bezier(.2,.8,.2,1), opacity .12s, transform .26s cubic-bezier(.2,.8,.2,1); transition-delay: 0s; }
+  .nav.open.dissolve a.hot span { opacity: 0; transform: translate(14px, -58%) scale(1.05); transition: opacity .28s ease-in, transform .3s ease-out; clip-path: inset(0 0 0 0); }
+  .nav:not(.open) a:focus-visible { outline: 2px solid rgba(255,255,255,.7); outline-offset: 2px; }
+  .lens { transition: transform .3s cubic-bezier(.3,1.2,.5,1), width .3s cubic-bezier(.3,1.25,.5,1), opacity .12s; }
+  .lens > i { border-radius: 999px; }
+  .puff { position: absolute; left: 52px; top: 0; width: 120px; height: 100%; pointer-events: none; }
+  .puff i { position: absolute; left: var(--x); top: var(--y); width: var(--s); height: var(--s); border-radius: 50%; background: rgba(255,255,255,.9); opacity: 0; will-change: transform, opacity; }
+  .nav.dissolve .puff i { animation: vapor .5s ease-out var(--d) both; }
+  .puff i:nth-child(1) { --x: 6px; --y: 26px; --dx: 28px; --dy: -30px; --d: 14ms; --s: 3px; }
+  .puff i:nth-child(2) { --x: 14px; --y: 12px; --dx: 30px; --dy: -14px; --d: 28ms; --s: 4px; }
+  .puff i:nth-child(3) { --x: 22px; --y: 36px; --dx: 19px; --dy: 10px; --d: 42ms; --s: 2px; }
+  .puff i:nth-child(4) { --x: 30px; --y: 18px; --dx: 44px; --dy: -17px; --d: 56ms; --s: 3px; }
+  .puff i:nth-child(5) { --x: 40px; --y: 30px; --dx: 21px; --dy: -23px; --d: 70ms; --s: 4px; }
+  .puff i:nth-child(6) { --x: 48px; --y: 10px; --dx: 36px; --dy: 9px; --d: 84ms; --s: 2px; }
+  .puff i:nth-child(7) { --x: 56px; --y: 34px; --dx: 34px; --dy: -28px; --d: 98ms; --s: 3px; }
+  .puff i:nth-child(8) { --x: 64px; --y: 22px; --dx: 19px; --dy: -32px; --d: 112ms; --s: 4px; }
+  .puff i:nth-child(9) { --x: 72px; --y: 40px; --dx: 31px; --dy: 21px; --d: 126ms; --s: 2px; }
+  .puff i:nth-child(10) { --x: 80px; --y: 14px; --dx: 20px; --dy: -27px; --d: 140ms; --s: 3px; }
+  .puff i:nth-child(11) { --x: 90px; --y: 30px; --dx: 20px; --dy: -17px; --d: 154ms; --s: 4px; }
+  .puff i:nth-child(12) { --x: 100px; --y: 20px; --dx: 31px; --dy: 9px; --d: 168ms; --s: 2px; }
+  .nav[data-fx="lite"] .puff i:nth-child(n+6) { display: none; }
+  .nav[data-fx="lite"] .puff i { animation-duration: .35s; }
+}
+@keyframes vapor { 0% { opacity: .95; transform: translate3d(0,0,0) scale(1); } 100% { opacity: 0; transform: translate3d(var(--dx), var(--dy), 0) scale(.2); } }
+@media (min-width: 860px) and (prefers-reduced-motion: reduce) { .puff { display: none; } .nav.open a.hot span { transition: none; } }

@@ -276,8 +276,24 @@ export function liquidNav(nav) {
   if (!lens) { lens = h("span", { class: "lens", "aria-hidden": "true" }, h("i")); nav.prepend(lens); }
   const LIFT = 15, D = 54;
   const links = () => [...nav.querySelectorAll("a")];
+  if (!lens.querySelector(".puff")) { // 12 tiny particles, reused for every dissolve (no DOM churn)
+    const puff = h("b", { class: "puff", "aria-hidden": "true" }); for (let i = 0; i < 12; i++) puff.append(h("i")); lens.append(puff);
+  }
+  const lite = (navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory || 8) <= 2 || navigator.connection?.saveData;
+  nav.dataset.fx = lite ? "lite" : "full";
+  // press = open the capsule and reveal the name; release = the name evaporates and the capsule is a circle again
+  const openCap = () => { clearTimeout(closeTimer); nav.classList.remove("dissolve"); if (!nav.classList.contains("open")) { nav.classList.add("open"); } pressedAt = performance.now(); };
+  const closeCap = () => {
+    clearTimeout(closeTimer);
+    if (!nav.classList.contains("open")) return;
+    const wait = Math.max(0, 260 - (performance.now() - pressedAt));       // always show the name long enough to read
+    closeTimer = setTimeout(() => {
+      nav.classList.remove("dissolve"); void nav.offsetWidth; nav.classList.add("dissolve");
+      closeTimer = setTimeout(() => { nav.classList.remove("open", "dissolve"); place(current()); }, 300);
+    }, wait);
+  };
   const current = () => nav.querySelector('a[aria-current="page"]');
-  let last = "", moveTimer = 0, openTimer = 0, lastY = null;
+  let last = "", moveTimer = 0, closeTimer = 0, pressedAt = 0;
   const EXPANDED = 176;
   const place = (a, instant = false) => {
     if (!a || !a.offsetWidth) return;
@@ -290,21 +306,9 @@ export function liquidNav(nav) {
       const cs = getComputedStyle(a);
       const iconMid = ic ? parseFloat(cs.paddingTop) + parseFloat(getComputedStyle(ic).height) / 2 : a.offsetHeight / 2;
       y = a.offsetTop + iconMid - D / 2 - LIFT;
-    } else { x = a.offsetLeft; y = a.offsetTop; w = EXPANDED; hgt = a.offsetHeight; }
+    } else { x = a.offsetLeft; y = a.offsetTop; hgt = a.offsetHeight; w = nav.classList.contains("open") ? EXPANDED : hgt; }
     for (const l of links()) l.classList.toggle("hot", l === a);
     const key = `${x}|${y}|${w}|${hgt}`;
-    if (!round) {
-      // vertical rail: collapse to a bubble while travelling, then open to show the name
-      const travelling = !instant && lastY !== null && y !== lastY;
-      clearTimeout(openTimer);
-      if (travelling) {
-        nav.classList.add("sliding");
-        lens.style.width = hgt + "px";
-        openTimer = setTimeout(() => { nav.classList.remove("sliding"); lens.style.width = EXPANDED + "px"; }, 190);
-      } else { nav.classList.remove("sliding"); }
-      lastY = y;
-      if (travelling) w = hgt;
-    }
     if (instant) lens.style.transition = "none";
     lens.style.width = w + "px"; lens.style.height = hgt + "px";
     lens.style.transform = `translate3d(${x}px, ${y}px, 0)`;
@@ -329,6 +333,7 @@ export function liquidNav(nav) {
       if (e.button) return;
       down = true; start = under(e.clientX, e.clientY); hover = start;
       nav.classList.add("pressing");
+      if (getComputedStyle(nav).flexDirection === "column") openCap();
       if (start) place(start);               // the lens moves the instant you touch, not on release
     });
     window.addEventListener("pointermove", (e) => {
@@ -342,6 +347,7 @@ export function liquidNav(nav) {
       const target = hover; hover = start = null;
       if (commit && target && target !== current()) location.hash = target.getAttribute("href"); // go immediately on release
       else place(current());
+      closeCap();
     };
     window.addEventListener("pointerup", () => finish(true));
     window.addEventListener("pointercancel", () => finish(false));
