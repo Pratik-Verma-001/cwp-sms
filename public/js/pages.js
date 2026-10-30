@@ -60,7 +60,7 @@ export function overview(root) {
             h("div", { class: "row" }, h("h2", { text: "Recent requests" }), h("span", { class: "spacer" }), h("a", { class: "btn small primary", href: "#/requests", text: "View all" })),
             d.recent.length === 0
               ? h("div", { class: "empty", text: "No requests yet. Send one from the API docs page." })
-              : h("ul", { class: "list" }, d.recent.map(requestRow))),
+              : h("ul", { class: "rlist one" }, d.recent.map((r) => requestRow(r, () => overview(root))))),
           h("div", { class: "stack" },
             h("div", { class: "card" }, h("h2", { text: "Daily quota" }),
               h("div", { class: "bar", role: "progressbar", "aria-valuenow": pct, "aria-valuemin": 0, "aria-valuemax": 100 }, bar),
@@ -90,24 +90,72 @@ async function deleteOne(id, after) {
 function iconBtn(name, label, onclick, cls = "") {
   return h("button", { class: "ibtn " + cls, type: "button", "aria-label": label, title: label, onclick }, icon(name));
 }
+const STEPS = ["Queued", "Sending", "Sent", "Delivered"];
+const STEP_OF = { accepted: 1, queued: 1, assigned: 1, sending: 2, sent: 3, delivery_pending: 3, delivered: 4, demo_completed: 4, failed: 2, unknown: 3, expired: 1, cancelled: 1 };
+const IN_FLIGHT = new Set(["accepted", "queued", "assigned", "sending", "delivery_pending"]);
+const STATUS_ICON = { delivered: "check", sent: "send", demo_completed: "code", failed: "more", unknown: "pulse", expired: "pulse", cancelled: "lock" };
+
+/** "Ticket" card: tap to unfold the timeline and actions; the track shows how far the message got. */
 function requestRow(r, refresh) {
-  const open = () => { location.hash = `#/requests/${encodeURIComponent(r.id)}`; };
+  const detailsHref = `#/requests/${encodeURIComponent(r.id)}`;
+  const open = () => { location.hash = detailsHref; };
   const actions = () => sheet(r.id, [
     { label: "Copy request ID", icon: "copy", run: () => copy(r.id, "Request ID copied") },
     { label: "Open details", icon: "open", run: open },
     ...(DELETABLE.has(r.status) ? [{ label: "Delete request", icon: "trash", danger: true, run: () => deleteOne(r.id, refresh) }] : []),
   ], `${r.to} · ${r.mode} · ${ago(r.createdAt)}`);
-  const li = h("li", { class: `rcard ${TONE[r.status] || "warn"}` },
-    h("div", { class: "rtop" },
-      h("a", { class: "rid mono", href: `#/requests/${encodeURIComponent(r.id)}`, text: r.id }),
-      statusPill(r.status)),
-    h("div", { class: "rmeta" },
-      h("span", { class: "tag", text: r.to }), h("span", { class: "tag", text: `${r.units} unit${r.units === 1 ? "" : "s"}` }),
-      h("span", { class: "tag " + (r.mode === "live" ? "live" : ""), text: r.mode }), h("span", { class: "tag faint", text: ago(r.createdAt) })),
-    h("div", { class: "ract" },
-      iconBtn("copy", "Copy request ID", () => copy(r.id, "Request ID copied")),
-      iconBtn("more", "More actions", actions),
-      DELETABLE.has(r.status) ? iconBtn("trash", "Delete request", () => deleteOne(r.id, refresh), "danger") : null));
+
+  const step = STEP_OF[r.status] || 1, tone = TONE[r.status] || "warn", flying = IN_FLIGHT.has(r.status);
+  const fill = h("i"); fill.style.transform = `scaleX(${(step - 1) / 3})`;
+  const track = h("div", { class: "mtrack", "aria-label": `Progress: ${STEPS[step - 1]}` },
+    h("div", { class: "mrail" }, fill),
+    ...STEPS.map((label, i) => h("span", { class: "mstep" + (i + 1 <= step ? " on" : "") + (i + 1 === step ? " now" : ""), "data-n": i + 1 }, h("b"), h("em", { text: label }))));
+
+  const more = h("div", { class: "mmore" });
+  const inner = h("div", { class: "minner" });
+  more.append(inner);
+  let loaded = false;
+  const fillMore = async () => {
+    if (loaded) return; loaded = true;
+    inner.append(h("div", { class: "mline" }, h("span", { class: "mono mid", text: r.id }),
+      h("button", { class: "ibtn", type: "button", "aria-label": "Copy request ID", onclick: () => copy(r.id, "Request ID copied") }, icon("copy"))));
+    const tl = h("ol", { class: "mtl" }, h("li", { class: "faint", text: "Loading timeline…" }));
+    inner.append(tl);
+    try {
+      const d = await api("GET", `/sms/requests/${encodeURIComponent(r.id)}`);
+      clear(tl);
+      if (d.request.errorCode) tl.before(h("div", { class: "note warn", text: `${d.request.errorCode}${d.request.errorMessage ? " — " + d.request.errorMessage : ""}` }));
+      if (d.timeline.length === 0) tl.append(h("li", { class: "faint", text: "No steps recorded yet." }));
+      for (const e of d.timeline) tl.append(h("li", {}, h("b", { text: `${e.from} → ${e.to}` }), h("span", { class: "faint", text: ` ${ago(e.at)}` })));
+    } catch { loaded = false; clear(tl).append(h("li", { class: "faint", text: "Could not load the timeline. Tap again to retry." })); }
+    inner.append(h("div", { class: "mact" },
+      h("button", { class: "btn small", type: "button", onclick: open }, icon("open"), " Details"),
+      DELETABLE.has(r.status) ? h("button", { class: "btn small danger", type: "button", onclick: () => deleteOne(r.id, refresh) }, icon("trash"), " Delete") : null));
+  };
+
+  const chev = h("span", { class: "mchev", "aria-hidden": "true" }, icon("chev"));
+  const main = h("div", { class: "mmain", role: "button", tabindex: "0", "aria-expanded": "false" },
+    h("span", { class: "mava" }, icon(STATUS_ICON[r.status] || "send")),
+    h("span", { class: "mwho" }, h("b", { class: "mto", text: r.to }),
+      h("small", {}, `${r.units} unit${r.units === 1 ? "" : "s"} · `, h("span", { class: r.mode === "live" ? "mlive" : "", text: r.mode }), ` · ${ago(r.createdAt)}`)),
+    h("span", { class: "mst" }, statusPill(r.status), chev));
+
+  const li = h("li", { class: `rcard msg ${tone}${flying ? " flying" : ""}`, "data-status": r.status }, main, track, more);
+  const toggle = () => {
+    const on = !li.classList.contains("open");
+    li.classList.toggle("open", on); main.setAttribute("aria-expanded", String(on));
+    if (on) fillMore();
+  };
+  main.addEventListener("click", toggle);
+  main.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
+  // a soft light follows the pointer (mouse only, one rAF per frame, only this card)
+  if (matchMedia("(hover: hover)").matches) {
+    let raf = 0;
+    li.addEventListener("pointermove", (e) => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => { raf = 0; const b = li.getBoundingClientRect(); li.style.setProperty("--mx", (e.clientX - b.left) + "px"); li.style.setProperty("--my", (e.clientY - b.top) + "px"); });
+    }, { passive: true });
+  }
   longPress(li, actions);
   return li;
 }
@@ -208,7 +256,7 @@ export function requests(root) {
     h("div", { class: "rwrap" }, d.requests.length === 0
       ? h("div", { class: "empty", text: "Nothing here." })
       : h("ul", { class: "rlist" }, d.requests.map((r) => requestRow(r, fetchList))),
-      h("p", { class: "small muted hint-line", text: `Showing matches from your latest ${d.scanned} requests. Long-press a card for actions. Message text is never shown here.` }),
+      h("p", { class: "small muted hint-line", text: `Showing matches from your latest ${d.scanned} requests. Tap a card to unfold it; long-press for more actions. Message text is never shown here.` }),
       (() => { const done = d.requests.filter((r) => DELETABLE.has(r.status)); return done.length > 1 ? h("button", { class: "btn small danger", type: "button", text: `Delete ${done.length} finished`, onclick: async () => {
         if (!(await ask({ title: `Delete ${done.length} finished requests?`, body: "Only requests that already finished are removed. Anything still in progress stays.", confirm: "Delete all", danger: true }))) return;
         let n = 0; try { for (const r of done) { await api("POST", `/sms/requests/${encodeURIComponent(r.id)}/delete`); n++; } toast(`${n} deleted`); } catch (e) { toast(e.message, true); }
